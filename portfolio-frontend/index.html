@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Portfolio Management System</h1>
+        <button id="theme-toggle">Toggle Dark Mode</button>
+    </header>
+    <main>
+        <section class="hero">
+            <h2>Welcome to Your Portfolio Hub</h2>
+            <p>Manage and showcase your projects efficiently.</p>
+            <div class="actions">
+                <button onclick="window.location.href='login.html'">Login</button>
+                <button onclick="window.location.href='register.html'">Register</button>
+                <button id="guest-btn">Enter as Guest</button>
+            </div>
+            <div id="guest-form" style="display: none;">
+                <input type="password" id="guest-password" placeholder="Enter guest password">
+                <button id="guest-submit">Submit</button>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2023 Portfolio Management System</p>
+    </footer>
+    <script src="js/auth.js"></script>
+</body>
+</html>

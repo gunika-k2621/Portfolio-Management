@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Portfolio - Portfolio Management System</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <header>
+        <h1>Portfolio</h1>
+        <button id="theme-toggle">Toggle Dark Mode</button>
+        <button id="back-dashboard">Back to Dashboard</button>
+    </header>
+    <main>
+        <section class="portfolio-section">
+            <h2 id="portfolio-owner"></h2>
+            <div class="filter-section">
+                <input type="text" id="filter-tech" placeholder="Filter by technology" />
+                <button id="filter-btn">Filter</button>
+            </div>
+            <div id="portfolio-projects"></div>
+            <section class="resume-section">
+                <h3>Your Resume / CV</h3>
+                <input type="file" id="resume-upload" accept=".pdf,.doc,.docx" />
+                <div id="resume-display"></div>
+            </section>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2023 Portfolio Management System</p>
+    </footer>
+    <script src="js/portfolio.js"></script>
+</body>
+</html>

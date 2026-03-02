@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Portfolio Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Dashboard</h1>
+        <button id="theme-toggle">Toggle Dark Mode</button>
+        <button id="logout-btn">Logout</button>
+    </header>
+    <main>
+        <section class="dashboard-section">
+            <h2>Welcome, <span id="user-name"></span></h2>
+            <div class="dashboard-actions">
+                <button id="add-project-btn">Add New Project</button>
+                <input type="text" id="search-input" placeholder="Search projects...">
+            </div>
+            <div id="projects-list"></div>
+        </section>
+        <div id="project-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3 id="modal-title">Add Project</h3>
+                <form id="project-form">
+                    <input type="hidden" id="project-id">
+                    <div class="form-group">
+                        <label for="project-title">Title:</label>
+                        <input type="text" id="project-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-description">Description:</label>
+                        <textarea id="project-description" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-tech">Technologies:</label>
+                        <input type="text" id="project-tech" placeholder="e.g., HTML, CSS, JS">
+                    </div>
+                    <div class="form-group">
+                        <label for="project-files">Upload Files:</label>
+                        <input type="file" id="project-files" multiple accept=".jpg,.jpeg,.png,.pdf,.docx">
+                    </div>
+                    <button type="submit">Save Project</button>
+                </form>
+                <div id="uploaded-files-list"></div>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2023 Portfolio Management System</p>
+    </footer>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
