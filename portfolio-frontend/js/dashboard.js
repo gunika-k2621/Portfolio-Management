@@ -1,18 +1,14 @@
 // Dashboard module for managing projects
 
-// Utility to get current user
+const API_URL = 'http://localhost:3000/api';
+let userProjects = [];
+
 function getCurrentUser() {
     const user = localStorage.getItem('currentUser');
     return user ? JSON.parse(user) : null;
 }
 
-// Utility to save current user
-function saveCurrentUser(user) {
-    localStorage.setItem('currentUser', JSON.stringify(user));
-}
-
-// Load dashboard
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const user = getCurrentUser();
     if (!user) {
         window.location.href = 'index.html';
@@ -20,21 +16,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('user-name').textContent = user.username;
-    renderProjects(user.projects);
+    
+    try {
+        if (user.id === 0) {
+            // Guest mode
+            renderProjects([]);
+        } else {
+            const res = await fetch(`${API_URL}/projects/${user.id}`);
+            if (res.ok) {
+                userProjects = await res.json();
+                renderProjects(userProjects);
+            }
+        }
+    } catch (err) {
+        console.error('Server error', err);
+    }
 });
 
-// Render projects
 function renderProjects(projects) {
     const projectsList = document.getElementById('projects-list');
     projectsList.innerHTML = '';
 
-    projects.forEach((project, index) => {
+    projects.forEach((project) => {
         const user = getCurrentUser();
         let filesHtml = '';
         if (project.files && project.files.length > 0) {
             filesHtml = '<div class="project-files" style="margin-top: 0.5rem;">';
             project.files.forEach(file => {
-                if (file.type.startsWith('image/')) {
+                if (file.type && file.type.startsWith('image/')) {
                     filesHtml += `<img src="${file.dataUrl}" alt="${file.name}" style="max-width: 100px; border-radius: 4px; margin: 0.25rem;">`;
                 } else {
                     filesHtml += `<a href="${file.dataUrl}" download="${file.name}" style="display: block; margin: 0.25rem 0;">${file.name}</a>`;
@@ -43,43 +52,35 @@ function renderProjects(projects) {
             filesHtml += '</div>';
         }
         const projectCard = document.createElement('div');
-        projectCard.className = 'project-card scroll-fade-in';
+        projectCard.className = 'project-card scroll-fade-in visible';
+        
         projectCard.innerHTML = `
             <h3>${project.title}</h3>
             <p>${project.description}</p>
             <p><strong>Technologies:</strong> ${project.technologies}</p>
             ${filesHtml}
-            <button onclick="editProject(${index})">Edit</button>
-            <button onclick="deleteProject(${index})">Delete</button>
+            <button onclick="editProject(${project.id})">Edit</button>
+            <button onclick="deleteProject(${project.id})">Delete</button>
             <button onclick="viewPortfolio('${user.username}')">View Portfolio</button>
         `;
         projectsList.appendChild(projectCard);
     });
-
-    // Add scroll animation observer
-    const observer = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-            }
-        });
-    }, { threshold: 0.1 });
-
-    document.querySelectorAll('.project-card').forEach(card => {
-        observer.observe(card);
-    });
 }
 
-// Add project
 document.getElementById('add-project-btn')?.addEventListener('click', () => {
+    const user = getCurrentUser();
+    if (user.id === 0) {
+        alert("Guests cannot add projects. Please register to save data.");
+        return;
+    }
     openModal();
 });
 
-// Edit project
-function editProject(index) {
-    const user = getCurrentUser();
-    const project = user.projects[index];
-    document.getElementById('project-id').value = index;
+function editProject(projectId) {
+    const project = userProjects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    document.getElementById('project-id').value = project.id;
     document.getElementById('project-title').value = project.title;
     document.getElementById('project-description').value = project.description;
     document.getElementById('project-tech').value = project.technologies;
@@ -87,22 +88,26 @@ function editProject(index) {
     openModal();
 }
 
-// Delete project
-function deleteProject(index) {
+async function deleteProject(projectId) {
     if (confirm('Are you sure you want to delete this project?')) {
-        const user = getCurrentUser();
-        user.projects.splice(index, 1);
-        saveCurrentUser(user);
-        renderProjects(user.projects);
+        try {
+            const res = await fetch(`${API_URL}/projects/${projectId}`, { method: 'DELETE' });
+            if (res.ok) {
+                userProjects = userProjects.filter(p => p.id !== projectId);
+                renderProjects(userProjects);
+            } else {
+                alert('Failed to delete project');
+            }
+        } catch (err) {
+            alert('Server error');
+        }
     }
 }
 
-// View portfolio
 function viewPortfolio(username) {
     window.location.href = `portfolio.html?user=${encodeURIComponent(username)}`;
 }
 
-// Modal functions
 function openModal() {
     document.getElementById('project-modal').style.display = 'flex';
 }
@@ -124,8 +129,7 @@ function closeModal() {
     document.getElementById('modal-title').textContent = 'Add Project';
 }
 
-// Project form submit
-document.getElementById('project-form')?.addEventListener('submit', function(e) {
+document.getElementById('project-form')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const id = document.getElementById('project-id').value;
     const title = document.getElementById('project-title').value.trim();
@@ -135,9 +139,9 @@ document.getElementById('project-form')?.addEventListener('submit', function(e) 
     const files = filesInput.files;
 
     const user = getCurrentUser();
-    const project = { title, description, technologies, files: [] };
+    const projectData = { user_id: user.id, title, description, technologies };
+    if (id) projectData.id = parseInt(id, 10);
 
-    // Process uploaded files with FileReader for data URLs
     const filePromises = Array.from(files).map(file => {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -152,22 +156,29 @@ document.getElementById('project-form')?.addEventListener('submit', function(e) 
         });
     });
 
-    Promise.all(filePromises).then(fileData => {
-        project.files = fileData;
-
-        if (id === '') {
-            user.projects.push(project);
+    try {
+        const fileData = await Promise.all(filePromises);
+        projectData.files = fileData;
+        
+        const res = await fetch(`${API_URL}/projects`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(projectData)
+        });
+        
+        if (res.ok) {
+            const projectsRes = await fetch(`${API_URL}/projects/${user.id}`);
+            userProjects = await projectsRes.json();
+            renderProjects(userProjects);
+            closeModal();
         } else {
-            user.projects[id] = project;
+            alert('Failed to save project');
         }
-
-        saveCurrentUser(user);
-        renderProjects(user.projects);
-        closeModal();
-    });
+    } catch (err) {
+        alert('Server error or files too large (Base64 approach).');
+    }
 });
 
-// Display uploaded files in modal
 document.getElementById('project-files')?.addEventListener('change', function() {
     const filesList = document.getElementById('uploaded-files-list');
     filesList.innerHTML = '';
@@ -185,11 +196,9 @@ document.getElementById('project-files')?.addEventListener('change', function() 
     filesList.appendChild(ul);
 });
 
-// Search projects
 document.getElementById('search-input')?.addEventListener('input', function() {
     const query = this.value.toLowerCase();
-    const user = getCurrentUser();
-    const filtered = user.projects.filter(p =>
+    const filtered = userProjects.filter(p =>
         p.title.toLowerCase().includes(query) ||
         p.description.toLowerCase().includes(query) ||
         p.technologies.toLowerCase().includes(query)
@@ -197,7 +206,6 @@ document.getElementById('search-input')?.addEventListener('input', function() {
     renderProjects(filtered);
 });
 
-// Logout
 document.getElementById('logout-btn')?.addEventListener('click', () => {
     localStorage.removeItem('currentUser');
     window.location.href = 'index.html';

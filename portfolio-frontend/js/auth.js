@@ -1,18 +1,9 @@
 // Authentication module for login, register, and guest access
 
-// Utility function to get users from localStorage
-function getUsers() {
-    const users = localStorage.getItem('users');
-    return users ? JSON.parse(users) : [];
-}
-
-// Utility function to save users to localStorage
-function saveUsers(users) {
-    localStorage.setItem('users', JSON.stringify(users));
-}
+const API_URL = 'http://localhost:3000/api';
 
 // Register user
-document.getElementById('register-form')?.addEventListener('submit', function(e) {
+document.getElementById('register-form')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const username = document.getElementById('reg-username').value.trim();
     const email = document.getElementById('email').value.trim();
@@ -24,31 +15,47 @@ document.getElementById('register-form')?.addEventListener('submit', function(e)
         return;
     }
 
-    let users = getUsers();
-    if (users.find(u => u.username === username)) {
-        alert('Username already exists.');
-        return;
+    try {
+        const res = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || 'Registration failed');
+            return;
+        }
+        alert('Registration successful! Please login.');
+        window.location.href = 'login.html';
+    } catch (err) {
+        alert('Error connecting to server.');
     }
-
-    users.push({ username, email, password, projects: [] });
-    saveUsers(users);
-    alert('Registration successful! Please login.');
-    window.location.href = 'login.html';
 });
 
 // Login user
-document.getElementById('login-form')?.addEventListener('submit', function(e) {
+document.getElementById('login-form')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
 
-    let users = getUsers();
-    const user = users.find(u => u.username === username && u.password === password);
-    if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        window.location.href = 'dashboard.html';
-    } else {
-        alert('Invalid username or password.');
+    try {
+        const res = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+            // Note: In a real app we would use JWT, but here we just store the user response
+            localStorage.setItem('currentUser', JSON.stringify(data));
+            window.location.href = 'dashboard.html';
+        } else {
+            alert(data.error || 'Invalid username or password.');
+        }
+    } catch (err) {
+        alert('Error connecting to server.');
     }
 });
 
@@ -57,7 +64,7 @@ const guestBtn = document.getElementById('guest-btn');
 const guestForm = document.getElementById('guest-form');
 const guestSubmit = document.getElementById('guest-submit');
 
-const GUEST_PASSWORD = 'guest123'; // Example guest password
+const GUEST_PASSWORD = 'guest123';
 
 if (guestBtn && guestForm && guestSubmit) {
     guestBtn.addEventListener('click', () => {
@@ -67,7 +74,7 @@ if (guestBtn && guestForm && guestSubmit) {
     guestSubmit.addEventListener('click', () => {
         const enteredPassword = document.getElementById('guest-password').value;
         if (enteredPassword === GUEST_PASSWORD) {
-            const guestUser = { username: 'Guest', email: '', password: '', projects: [] };
+            const guestUser = { id: 0, username: 'Guest', email: '' }; // Guest id 0
             localStorage.setItem('currentUser', JSON.stringify(guestUser));
             window.location.href = 'dashboard.html';
         } else {
@@ -90,7 +97,6 @@ themeToggleButtons.forEach(button => {
     });
 });
 
-// Load theme on page load
 document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
